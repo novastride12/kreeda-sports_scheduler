@@ -1,15 +1,25 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { Admin } from '../models/Admin';
 import { authenticateAdmin, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'kreeda_super_secret_jwt_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'local_dev_only_jwt_secret';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Rate limiter for login endpoint: max 5 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { message: 'Too many login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // POST /login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 

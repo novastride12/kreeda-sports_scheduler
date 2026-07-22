@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kreeda_super_secret_jwt_key_2026';
+if (!process.env.JWT_SECRET) {
+  console.warn('WARNING: JWT_SECRET environment variable is not set. Using insecure default for local development only.');
+}
+const JWT_SECRET = process.env.JWT_SECRET || 'local_dev_only_jwt_secret';
 
 export interface AuthenticatedRequest extends Request {
   adminId?: string;

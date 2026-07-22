@@ -6,13 +6,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const Admin_1 = require("../models/Admin");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-const JWT_SECRET = process.env.JWT_SECRET || 'kreeda_super_secret_jwt_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'local_dev_only_jwt_secret';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+// Rate limiter for login endpoint: max 5 attempts per 15 minutes per IP
+const loginLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,
+    message: { message: 'Too many login attempts. Please try again after 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 // POST /login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
         if (!username || !password) {
