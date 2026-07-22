@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = require("./config/db");
+const mongoose_1 = __importDefault(require("mongoose"));
 const Team_1 = require("./models/Team");
 const Admin_1 = require("./models/Admin");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
@@ -44,11 +45,14 @@ const ensureAdminExists = async () => {
         console.error('Error auto-seeding default admin:', err);
     }
 };
-let adminChecked = false;
+// Register DB events
+mongoose_1.default.connection.once('open', () => {
+    ensureAdminExists();
+});
 // Connect Database
+(0, db_1.connectDB)();
 if (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
-    (0, db_1.connectDB)().then(() => {
-        ensureAdminExists();
+    mongoose_1.default.connection.once('open', () => {
         Team_1.Team.cleanIndexes().then(() => {
             console.log('Team indexes synced successfully.');
         }).catch(err => {
@@ -56,20 +60,6 @@ if (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT
         });
     });
 }
-// Database connection middleware for serverless environments
-app.use(async (req, res, next) => {
-    try {
-        await (0, db_1.connectDB)();
-        if (!adminChecked) {
-            adminChecked = true;
-            ensureAdminExists();
-        }
-        next();
-    }
-    catch (err) {
-        next(err);
-    }
-});
 // Middleware
 app.use((0, cors_1.default)({
     origin: CLIENT_URL,

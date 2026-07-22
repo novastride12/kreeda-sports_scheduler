@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db';
+import mongoose from 'mongoose';
 import { Team } from './models/Team';
 import { Admin } from './models/Admin';
 import bcrypt from 'bcryptjs';
@@ -43,12 +44,16 @@ const ensureAdminExists = async () => {
   }
 };
 
-let adminChecked = false;
+// Register DB events
+mongoose.connection.once('open', () => {
+  ensureAdminExists();
+});
 
 // Connect Database
+connectDB();
+
 if (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
-  connectDB().then(() => {
-    ensureAdminExists();
+  mongoose.connection.once('open', () => {
     Team.cleanIndexes().then(() => {
       console.log('Team indexes synced successfully.');
     }).catch(err => {
@@ -56,20 +61,6 @@ if (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT
     });
   });
 }
-
-// Database connection middleware for serverless environments
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    if (!adminChecked) {
-      adminChecked = true;
-      ensureAdminExists();
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
 
 // Middleware
 app.use(
