@@ -22,12 +22,24 @@ const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 // Connect Database
-(0, db_1.connectDB)().then(() => {
-    Team_1.Team.cleanIndexes().then(() => {
-        console.log('Team indexes synced successfully.');
-    }).catch(err => {
-        console.error('Error syncing Team indexes:', err);
+if (!process.env.VERCEL) {
+    (0, db_1.connectDB)().then(() => {
+        Team_1.Team.cleanIndexes().then(() => {
+            console.log('Team indexes synced successfully.');
+        }).catch(err => {
+            console.error('Error syncing Team indexes:', err);
+        });
     });
+}
+// Database connection middleware for serverless environments
+app.use(async (req, res, next) => {
+    try {
+        await (0, db_1.connectDB)();
+        next();
+    }
+    catch (err) {
+        next(err);
+    }
 });
 // Middleware
 app.use((0, cors_1.default)({
@@ -54,10 +66,13 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Internal server error occurred.' });
 });
 // Start Server
-app.listen(PORT, () => {
-    console.log(`========================================`);
-    console.log(`Kreeda API Server started on port ${PORT}`);
-    console.log(`URL: http://localhost:${PORT}`);
-    console.log(`CORS allowed origin: ${CLIENT_URL}`);
-    console.log(`========================================`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`========================================`);
+        console.log(`Kreeda API Server started on port ${PORT}`);
+        console.log(`URL: http://localhost:${PORT}`);
+        console.log(`CORS allowed origin: ${CLIENT_URL}`);
+        console.log(`========================================`);
+    });
+}
+exports.default = app;
