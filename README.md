@@ -1,4 +1,6 @@
-# Kreeda — Premium Tournament Management & Bracket Scheduler
+# Kreeda - Premium Tournament Management & Bracket Scheduler
+
+Live Website: [https://kreeda-pes.netlify.app](https://kreeda-pes.netlify.app)
 
 Kreeda is a premium, full-stack tournament management and scheduling platform designed for single-elimination (knockout) tournaments. It features a sleek, obsidian dark-themed user interface enhanced with golden glow accents, real-time live match ticker updates, and dynamic bracket generation across multiple independent sport categories.
 
@@ -33,14 +35,13 @@ Kreeda is a premium, full-stack tournament management and scheduling platform de
 
 ---
 
-##  Credentials & Environment Setup
+## Credentials & Environment Setup
 
-- **Default Admin Account**:
-  - **User ID**: `admin`
-  - **Password**: `santaclaus@2512`
-
-Ensure your MongoDB instance is running. The server connects to the database specified in your environment variables or defaults to:
-`mongodb://localhost:27017/kreeda`
+Configure the following environment variables in your server dashboard (or local `.env` file):
+- `MONGODB_URI`: Your MongoDB connection string (e.g. MongoDB Atlas URI for production, or defaults to `mongodb://localhost:27017/kreeda` locally).
+- `ADMIN_USERNAME`: The admin username for database seeding (defaults to `admin` if not specified).
+- `ADMIN_PASSWORD`: The admin password for database seeding. If specified, the server will automatically seed the admin user on startup if the database is empty.
+- `JWT_SECRET`: Secret key for signing JSON Web Tokens.
 
 ---
 

@@ -8,8 +8,13 @@ const seedAdmin = async () => {
     // Connect to database
     await connectDB();
 
-    const username = 'admin';
-    const rawPassword = 'santaclaus@2512';
+    const username = process.env.ADMIN_USERNAME || 'admin';
+    const rawPassword = process.env.ADMIN_PASSWORD;
+
+    if (!rawPassword) {
+      console.error('Error: ADMIN_PASSWORD environment variable is not defined.');
+      process.exit(1);
+    }
 
     // Delete existing admin
     await Admin.deleteMany({ username });

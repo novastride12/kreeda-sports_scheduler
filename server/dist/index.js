@@ -30,15 +30,21 @@ const ensureAdminExists = async () => {
     try {
         const adminCount = await Admin_1.Admin.countDocuments();
         if (adminCount === 0) {
+            const username = process.env.ADMIN_USERNAME || 'admin';
+            const rawPassword = process.env.ADMIN_PASSWORD;
+            if (!rawPassword) {
+                console.log('No admin users found, but ADMIN_PASSWORD env variable is not defined. Skipping auto-seeding.');
+                return;
+            }
             console.log('No admin users found. Auto-seeding default admin...');
             const salt = await bcryptjs_1.default.genSalt(10);
-            const hashedPassword = await bcryptjs_1.default.hash('santaclaus@2512', salt);
+            const hashedPassword = await bcryptjs_1.default.hash(rawPassword, salt);
             const admin = new Admin_1.Admin({
-                username: 'admin',
+                username,
                 password: hashedPassword,
             });
             await admin.save();
-            console.log('Default admin seeded successfully: admin / santaclaus@2512');
+            console.log(`Default admin seeded successfully with username: ${username}`);
         }
     }
     catch (err) {
