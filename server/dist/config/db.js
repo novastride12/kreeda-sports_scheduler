@@ -5,18 +5,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectDB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kreeda';
+const isServerless = !!(process.env.VERCEL || process.env.NETLIFY || process.env.LAMBDA_TASK_ROOT);
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI && isServerless) {
+    console.warn('WARNING: MONGODB_URI environment variable is not defined in serverless environment!');
+}
+const dbUri = MONGODB_URI || 'mongodb://localhost:27017/kreeda';
 const connectDB = async () => {
     if (mongoose_1.default.connection.readyState >= 1) {
         return;
     }
+    if (!process.env.MONGODB_URI && isServerless) {
+        throw new Error('MONGODB_URI environment variable is missing in serverless environment. Please configure it in your dashboard.');
+    }
     try {
-        await mongoose_1.default.connect(MONGODB_URI);
-        console.log('MongoDB connected successfully to:', MONGODB_URI);
+        await mongoose_1.default.connect(dbUri);
+        console.log('MongoDB connected successfully to:', dbUri);
     }
     catch (error) {
         console.error('Error connecting to MongoDB:', error);
-        if (process.env.VERCEL) {
+        if (isServerless) {
             throw error;
         }
         else {

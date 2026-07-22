@@ -9,6 +9,8 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = require("./config/db");
 const Team_1 = require("./models/Team");
+const Admin_1 = require("./models/Admin");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 // Import routes
 const auth_1 = __importDefault(require("./routes/auth"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
@@ -22,8 +24,31 @@ const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 // Connect Database
-if (!process.env.VERCEL) {
+// Helper to auto-seed admin if database is empty
+const ensureAdminExists = async () => {
+    try {
+        const adminCount = await Admin_1.Admin.countDocuments();
+        if (adminCount === 0) {
+            console.log('No admin users found. Auto-seeding default admin...');
+            const salt = await bcryptjs_1.default.genSalt(10);
+            const hashedPassword = await bcryptjs_1.default.hash('santaclaus@2512', salt);
+            const admin = new Admin_1.Admin({
+                username: 'admin',
+                password: hashedPassword,
+            });
+            await admin.save();
+            console.log('Default admin seeded successfully: admin / santaclaus@2512');
+        }
+    }
+    catch (err) {
+        console.error('Error auto-seeding default admin:', err);
+    }
+};
+let adminChecked = false;
+// Connect Database
+if (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
     (0, db_1.connectDB)().then(() => {
+        ensureAdminExists();
         Team_1.Team.cleanIndexes().then(() => {
             console.log('Team indexes synced successfully.');
         }).catch(err => {
@@ -35,6 +60,10 @@ if (!process.env.VERCEL) {
 app.use(async (req, res, next) => {
     try {
         await (0, db_1.connectDB)();
+        if (!adminChecked) {
+            adminChecked = true;
+            ensureAdminExists();
+        }
         next();
     }
     catch (err) {
@@ -66,7 +95,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Internal server error occurred.' });
 });
 // Start Server
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'production' || (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT)) {
     app.listen(PORT, () => {
         console.log(`========================================`);
         console.log(`Kreeda API Server started on port ${PORT}`);

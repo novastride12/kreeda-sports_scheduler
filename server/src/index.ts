@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import { Team } from './models/Team';
+import { Admin } from './models/Admin';
+import bcrypt from 'bcryptjs';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -21,8 +23,32 @@ const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 // Connect Database
-if (!process.env.VERCEL) {
+// Helper to auto-seed admin if database is empty
+const ensureAdminExists = async () => {
+  try {
+    const adminCount = await Admin.countDocuments();
+    if (adminCount === 0) {
+      console.log('No admin users found. Auto-seeding default admin...');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('santaclaus@2512', salt);
+      const admin = new Admin({
+        username: 'admin',
+        password: hashedPassword,
+      });
+      await admin.save();
+      console.log('Default admin seeded successfully: admin / santaclaus@2512');
+    }
+  } catch (err) {
+    console.error('Error auto-seeding default admin:', err);
+  }
+};
+
+let adminChecked = false;
+
+// Connect Database
+if (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
   connectDB().then(() => {
+    ensureAdminExists();
     Team.cleanIndexes().then(() => {
       console.log('Team indexes synced successfully.');
     }).catch(err => {
@@ -35,6 +61,10 @@ if (!process.env.VERCEL) {
 app.use(async (req, res, next) => {
   try {
     await connectDB();
+    if (!adminChecked) {
+      adminChecked = true;
+      ensureAdminExists();
+    }
     next();
   } catch (err) {
     next(err);
@@ -72,7 +102,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start Server
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'production' || (!process.env.VERCEL && !process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT)) {
   app.listen(PORT, () => {
     console.log(`========================================`);
     console.log(`Kreeda API Server started on port ${PORT}`);
